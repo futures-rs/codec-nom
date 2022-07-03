@@ -56,7 +56,7 @@ where
 {
     type Item = NomInput<Parsed>;
 
-    type Error = anyhow::Error;
+    type Error = std::io::Error;
 
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if buf.is_empty() || self.decode_need_message_bytes > buf.len() {
@@ -89,10 +89,9 @@ where
             }
             Err(nom::Err::Error(nom::error::Error { code, .. }))
             | Err(nom::Err::Failure(nom::error::Error { code, .. })) => {
-                return Err(anyhow::format_err!(
-                    "{:?} during parsing of {:?}",
-                    code,
-                    buf
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("{:?} during parsing of {:?}", code, buf),
                 ));
             }
         };
