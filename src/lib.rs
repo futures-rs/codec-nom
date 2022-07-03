@@ -1,5 +1,5 @@
-use bytes::{Bytes, BytesMut};
-use futures_framed::Decoder;
+use bytes::{BufMut, Bytes, BytesMut};
+use futures_framed::{Decoder, Encoder};
 use nom::{IResult, Needed};
 use std::marker::PhantomData;
 
@@ -33,6 +33,19 @@ where
             _parsed: Default::default(),
             parser,
         }
+    }
+}
+
+impl<Parsed, Parser> Encoder<String> for NomCodec<Parsed, Parser>
+where
+    for<'a> Parser: NomParser<'a>,
+{
+    type Error = anyhow::Error;
+
+    fn encode(&mut self, item: String, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        dst.put_slice(&item.as_bytes());
+        dst.put_slice(b"\r\n");
+        Ok(())
     }
 }
 
