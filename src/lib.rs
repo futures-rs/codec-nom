@@ -40,7 +40,7 @@ impl<Parsed, Parser> Encoder<String> for NomCodec<Parsed, Parser>
 where
     for<'a> Parser: NomParser<'a>,
 {
-    type Error = anyhow::Error;
+    type Error = std::io::Error;
 
     fn encode(&mut self, item: String, dst: &mut BytesMut) -> Result<(), Self::Error> {
         dst.put_slice(&item.as_bytes());
