@@ -111,7 +111,13 @@ where
     //
     // `raw` is never mutated during the lifetime of `ResponseData`,
     // and `Response` does not not implement any specific drop glue.
-    pub parsed: Box<Parsed>,
+    parsed: Box<Parsed>,
+}
+
+impl<Parsed> NomInput<Parsed> {
+    pub fn parsed(&self) -> &Parsed {
+        &self.parsed
+    }
 }
 
 #[allow(dead_code)]
@@ -279,7 +285,7 @@ mod tests {
 
         let result = result.unwrap();
 
-        log::debug!("{:?}", result.parsed);
+        log::debug!("{:?}", result.parsed());
 
         Ok(())
     }
