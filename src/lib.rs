@@ -54,11 +54,13 @@ where
                 // freed as long as we keep a reference alive, which we do
                 // by retaining a reference to the split buffer, below.
                 let response = unsafe {
-                    let b = ::core::ptr::read(&response as *const Parser::Parsed as *const Parsed);
+                    let response = Box::new(response);
 
-                    ::core::mem::forget(response);
+                    let response = Box::into_raw(response);
 
-                    b
+                    let response: *mut Parsed = std::mem::transmute(response);
+
+                    Box::from_raw(response)
                 };
                 (response, buf.len() - remaining.len())
             }
@@ -106,7 +108,7 @@ where
     //
     // `raw` is never mutated during the lifetime of `ResponseData`,
     // and `Response` does not not implement any specific drop glue.
-    pub parsed: Parsed,
+    pub parsed: Box<Parsed>,
 }
 
 #[allow(dead_code)]
@@ -258,6 +260,8 @@ mod tests {
 
     #[test]
     fn test_nome_parser() -> Result<(), anyhow::Error> {
+        pretty_env_logger::init();
+
         let mut codec = NomCodec {
             parser: Parser {},
             decode_need_message_bytes: 0,
@@ -269,6 +273,10 @@ mod tests {
         let result = codec.decode(&mut buf)?;
 
         assert!(result.is_some());
+
+        let result = result.unwrap();
+
+        log::debug!("{:?}", result.parsed);
 
         Ok(())
     }
