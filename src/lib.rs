@@ -3,6 +3,9 @@ use futures_framed::Decoder;
 use nom::{IResult, Needed};
 use std::marker::PhantomData;
 
+pub use bytes;
+pub use nom;
+
 pub struct NomCodec<Parsed, Parser>
 where
     for<'a> Parser: NomParser<'a>,
