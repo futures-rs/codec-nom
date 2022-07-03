@@ -266,7 +266,9 @@ mod tests {
 
         let mut buf = BytesMut::from(&b"-ERR no such message\r\n"[..]);
 
-        codec.decode(&mut buf)?;
+        let result = codec.decode(&mut buf)?;
+
+        assert!(result.is_some());
 
         Ok(())
     }
