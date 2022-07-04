@@ -43,6 +43,7 @@ where
     type Error = std::io::Error;
 
     fn encode(&mut self, item: String, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        log::trace!("send {:?}", dst);
         dst.put_slice(&item.as_bytes());
         dst.put_slice(b"\r\n");
         Ok(())
@@ -59,6 +60,7 @@ where
     type Error = std::io::Error;
 
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        log::trace!("{:?}", buf);
         if buf.is_empty() || self.decode_need_message_bytes > buf.len() {
             return Ok(None);
         }
