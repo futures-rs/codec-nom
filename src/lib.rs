@@ -6,12 +6,13 @@ use std::marker::PhantomData;
 pub use bytes;
 pub use nom;
 
-pub struct NomCodec<Parsed, Parser>
+pub struct NomCodec<Parsed, Parser, Error>
 where
     for<'a> Parser: NomParser<'a>,
 {
     decode_need_message_bytes: usize,
     _parsed: PhantomData<Parsed>,
+    _error: PhantomData<Error>,
     parser: Parser,
 }
 
@@ -21,7 +22,7 @@ pub trait NomParser<'a> {
     fn parse(&self, buf: &'a [u8]) -> IResult<&'a [u8], Self::Parsed>;
 }
 
-impl<Parsed, Parser> NomCodec<Parsed, Parser>
+impl<Parsed, Parser, Error> NomCodec<Parsed, Parser, Error>
 where
     for<'a> Parser: NomParser<'a>,
 {
@@ -31,16 +32,18 @@ where
         Self {
             decode_need_message_bytes: 0,
             _parsed: Default::default(),
+            _error: Default::default(),
             parser,
         }
     }
 }
 
-impl<Parsed, Parser> Encoder<String> for NomCodec<Parsed, Parser>
+impl<Parsed, Parser, Error> Encoder<String> for NomCodec<Parsed, Parser, Error>
 where
     for<'a> Parser: NomParser<'a>,
+    Error: From<std::io::Error>,
 {
-    type Error = std::io::Error;
+    type Error = Error;
 
     fn encode(&mut self, item: String, dst: &mut BytesMut) -> Result<(), Self::Error> {
         log::trace!("send {:?}", dst);
@@ -50,14 +53,15 @@ where
     }
 }
 
-impl<Parsed, Parser> Decoder for NomCodec<Parsed, Parser>
+impl<Parsed, Parser, Error> Decoder for NomCodec<Parsed, Parser, Error>
 where
     Parsed: 'static + Sized,
     for<'a> Parser: NomParser<'a>,
+    Error: From<std::io::Error>,
 {
     type Item = NomInput<Parsed>;
 
-    type Error = std::io::Error;
+    type Error = Error;
 
     fn decode(&mut self, buf: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         log::trace!("{:?}", buf);
@@ -94,7 +98,8 @@ where
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     format!("{:?} during parsing of {:?}", code, buf),
-                ));
+                )
+                .into());
             }
         };
         let raw = buf.split_to(rsp_len).freeze();
@@ -289,6 +294,7 @@ mod tests {
             parser: Parser {},
             decode_need_message_bytes: 0,
             _parsed: PhantomData::<Response<'static>>,
+            _error: PhantomData::<std::io::Error>,
         };
 
         let mut buf = BytesMut::from(&b"-ERR no such message\r\n"[..]);
